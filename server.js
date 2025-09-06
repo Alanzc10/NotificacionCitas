@@ -11,7 +11,27 @@ moment.tz.setDefault('America/Guayaquil');
 
 // Inicializar la aplicación antes de cargar WhatsApp
 const app = express();
-const PORT = process.env.PORT || 3000;
+const client = new Client({
+    authStrategy: new LocalAuth({
+        dataPath: './whatsapp-session'
+    }),
+    puppeteer: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    }
+});
 
 // Variables globales
 let whatsappClient = null;
@@ -699,4 +719,30 @@ process.on('SIGINT', () => {
         console.log('Base de datos cerrada.');
         process.exit(0);
     });
+});
+// Función keep-alive
+function keepAlive() {
+    setInterval(() => {
+        console.log('Keep-alive ping:', new Date().toISOString());
+    }, 25 * 60 * 1000);
+}
+
+// Endpoint de health check
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        whatsapp: isWhatsAppReady,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Modificar el app.listen para incluir keep-alive
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('\n========================================');
+    console.log(`Servidor iniciado en puerto ${PORT}`);
+    console.log('Panel administrativo disponible');
+    console.log('========================================\n');
+    
+    keepAlive(); // Agregar esta línea
+    inicializarWhatsApp();
 });
