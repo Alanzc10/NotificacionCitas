@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración - Sistema de Citas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            padding: 30px;
+            text-align: center;
+            color: #333;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .nav-buttons {
+            background: #f8f9ff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e1e8f0;
+        }
+
+        .nav-buttons a {
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 0 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-buttons a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .form-section {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 2px solid #e1e8f0;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+            font-size: 0.95em;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .status-card.disconnected {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #4caf50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.warning {
+            background: #ff9800;
+        }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .example-box {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            margin-top: 10px;
+        }
+
+        .example-box h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .example-box pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+
+        .promocion-section {
+            border-left: 4px solid #ff9800;
+        }
+
+        .mensaje-promocion {
+            min-height: 120px;
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .clientes-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .nav-buttons a {
+                width: 200px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Configuración</h1>
+            <p>Personaliza tu sistema de citas</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/">🏠 Volver al Panel Principal</a>
+            <a href="#" onclick="location.reload()">🔄 Actualizar</a>
+        </div>
+
+        <div class="main-content">
+            <!-- Estado de WhatsApp -->
+            <div class="form-section">
+                <h2>📱 Estado de WhatsApp</h2>
+                <div id="whatsappStatus" class="status-card">
+                    <h3 id="statusTitle">Verificando conexión...</h3>
+                    <p id="statusDescription">Espera un momento mientras verificamos el estado</p>
+                </div>
+            </div>
+
+            <!-- Configuración básica -->
+            <div class="form-section">
+                <h2>👤 Configuración Personal</h2>
+                <form id="configForm">
+                    <div class="form-group">
+                        <label for="adminPhone">Tu Número de WhatsApp Personal</label>
+                        <input type="tel" id="adminPhone" placeholder="593978863845">
+                        <div class="help-text">
+                            Este es el número donde recibirás las notificaciones cuando se envíen recordatorios
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="businessName">Nombre de tu Negocio</label>
+                        <input type="text" id="businessName" placeholder="Nail Studio" value="Nail Studio">
+                        <div class="help-text">
+                            Aparecerá en los mensajes de recordatorio a las clientas
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">💾 Guardar Configuración</button>
+                </form>
+            </div>
+
+            <!-- Personalización de mensajes -->
+            <div class="form-section">
+                <h2>💬 Personalizar Mensajes</h2>
+                
+                <div class="form-group">
+                    <label for="mensaje24h">Mensaje de Recordatorio 24 horas</label>
+                    <textarea id="mensaje24h" placeholder="Personaliza el mensaje que se envía 24 horas antes..."></textarea>
+                    <div class="help-text">
+                        Variables disponibles: {nombre}, {fecha}, {hora}, {servicio}, {notas}, {negocio}
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <h4>Ejemplo de mensaje personalizado:</h4>
+                    <pre>🌸 *Recordatorio de {negocio}* 🌸
+
+¡Hola {nombre}! 👋
+
+Te recordamos que mañana tienes tu cita:
+
+📅 *Fecha:* {fecha}
+⏰ *Hora:* {hora}  
+💅 *Servicio:* {servicio}
+
+¡Te esperamos! ✨</pre>
+                </div>
+
+                <div class="form-group" style="margin-top: 25px;">
+                    <label for="mensaje2h">Mensaje de Recordatorio 2 horas</label>
+                    <textarea id="mensaje2h" placeholder="Personaliza el mensaje que se envía 2 horas antes..."></textarea>
+                </div>
+
+                <button type="button" class="btn btn-secondary" onclick="guardarMensajes()">
+                    💬 Guardar Mensajes
+                </button>
+            </div>
+
+            <!-- Nueva sección de promociones -->
+            <div class="form-section promocion-section">
+                <h2>📢 Promociones Masivas</h2>
+                
+                <div class="clientes-count" id="clientesCount">
+                    🔄 Cargando número de clientes...
+                </div>
+                
+                <div class="form-group">
+                    <label for="mensajePromocion">Mensaje de Promoción</label>
+                    <textarea 
+                        id="mensajePromocion" 
+                        class="mensaje-promocion"
+                        placeholder="Escribe tu mensaje promocional aquí...
+Ejemplo:
+🎉 ¡OFERTA ESPECIAL! 🎉
+Manicure + Pedicure por solo $30
+Válido hasta fin de mes
+¡Agenda tu cita ya!"
+                        maxlength="500"
+                        oninput="actualizarContador()"></textarea>
+                    <div class="char-counter" id="charCounter">0/500 caracteres</div>
+                    <div class="help-text">
+                        Este mensaje se enviará a todas tus clientas registradas. Se agregará automáticamente su nombre al inicio y tu firma al final.
+                    </div>
+                </div>
+
+                <div class="example-box">
+                    <h4>Vista previa del mensaje que recibirán:</h4>
+                    <pre id="previewMensaje">Hola [Nombre de la Cliente]! 👋
+
+[Tu mensaje aparecerá aquí]
+
+_Nail Studio_ 🌸</pre>
+                </div>
+
+                <button type="button" class="btn btn-warning" id="enviarPromocionBtn" onclick="enviarPromocionMasiva()">
+                    📢 Enviar a Todas las Clientas
+                </button>
+                
+                <div class="help-text" style="margin-top: 10px; color: #ff6b00; font-weight: 600;">
+                    ⚠️ Importante: Esta acción enviará el mensaje a TODAS tus clientas. Úsalo con moderación para no saturarlas.
+                </div>
+            </div>
+
+            <!-- Herramientas -->
+            <div class="form-section">
+                <h2>🛠️ Herramientas</h2>
+                
+                <div class="form-group">
+                    <label>Probar Conexión WhatsApp</label>
+                    <button type="button" class="btn" onclick="probarWhatsApp()">
+                        📱 Enviar Mensaje de Prueba
+                    </button>
+                    <div class="help-text">
+                        Te enviará un mensaje de prueba a tu número configurado
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Reiniciar Sesión WhatsApp</label>
+                    <button type="button" class="btn btn-secondary" onclick="reiniciarWhatsApp()">
+                        🔄 Reiniciar WhatsApp
+                    </button>
+                    <div class="help-text">
+                        Úsalo si WhatsApp no se conecta correctamente. Tendrás que escanear el QR nuevamente.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let configuracion = {};
+        let totalClientes = 0;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarConfiguracion();
+            verificarEstadoWhatsApp();
+            cargarNumeroClientes();
+            actualizarContador();
+            
+            // Configurar formulario
+            document.getElementById('configForm').addEventListener('submit', guardarConfiguracion);
+            
+            // Verificar estado cada 30 segundos
+            setInterval(verificarEstadoWhatsApp, 30000);
+        });
+
+        // Cargar número de clientes únicos
+        async function cargarNumeroClientes() {
+            try {
+                const response = await fetch('/api/citas');
+                const citas = await response.json();
+                
+                // Contar clientes únicos
+                const clientesUnicos = new Set();
+                citas.forEach(cita => {
+                    if (cita.cliente_telefono) {
+                        clientesUnicos.add(cita.cliente_telefono);
+                    }
+                });
+                
+                totalClientes = clientesUnicos.size;
+                document.getElementById('clientesCount').textContent = 
+                    `📋 ${totalClientes} clientas registradas recibirán la promoción`;
+                
+            } catch (error) {
+                console.error('Error cargando clientes:', error);
+                document.getElementById('clientesCount').textContent = 
+                    '❌ Error cargando número de clientas';
+            }
+        }
+
+        // Actualizar contador de caracteres
+        function actualizarContador() {
+            const textarea = document.getElementById('mensajePromocion');
+            const counter = document.getElementById('charCounter');
+            const preview = document.getElementById('previewMensaje');
+            
+            const length = textarea.value.length;
+            counter.textContent = `${length}/500 caracteres`;
+            
+            if (length > 450) {
+                counter.style.color = '#ff6b00';
+            } else {
+                counter.style.color = '#666';
+            }
+            
+            // Actualizar preview
+            const mensaje = textarea.value || '[Tu mensaje aparecerá aquí]';
+            preview.textContent = `Hola [Nombre de la Cliente]! 👋\n\n${mensaje}\n\n_Nail Studio_ 🌸`;
+        }
+
+        // Enviar promoción masiva
+        async function enviarPromocionMasiva() {
+            const mensaje = document.getElementById('mensajePromocion').value.trim();
+            const boton = document.getElementById('enviarPromocionBtn');
+            
+            if (!mensaje) {
+                mostrarNotificacion('Por favor escribe un mensaje para la promoción', 'error');
+                return;
+            }
+            
+            if (totalClientes === 0) {
+                mostrarNotificacion('No hay clientas registradas para enviar promoción', 'error');
+                return;
+            }
+            
+            const confirmacion = confirm(
+                `¿Estás seguro de enviar esta promoción a ${totalClientes} clientas?\n\n` +
+                `Mensaje: "${mensaje.substring(0, 100)}${mensaje.length > 100 ? '...' : ''}"\n\n` +
+                `Esta acción no se puede deshacer.`
+            );
+            
+            if (!confirmacion) return;
+            
+            // Deshabilitar botón y mostrar loading
+            boton.disabled = true;
+            boton.innerHTML = '<div class="loading"></div>Enviando promoción...';
+            
+            try {
+                const response = await fetch('/api/promocion-masiva', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mensaje })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    mostrarNotificacion(
+                        `✅ ${resultado.message}. Enviados: ${resultado.enviados}, Errores: ${resultado.errores}`, 
+                        'success'
+                    );
+                    document.getElementById('mensajePromocion').value = '';
+                    actualizarContador();
+                } else {
+                    mostrarNotificacion(`❌ ${resultado.message}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error enviando promoción masiva', 'error');
+            } finally {
+                // Rehabilitar botón
+                boton.disabled = false;
+                boton.innerHTML = '📢 Enviar a Todas las Clientas';
+            }
+        }
+
+        // Cargar configuración actual
+        async function cargarConfiguracion() {
+            try {
+                const response = await fetch('/api/configuracion');
+                configuracion = await response.json();
+                
+                // Llenar formulario
+                if (configuracion.admin_phone) {
+                    document.getElementById('adminPhone').value = configuracion.admin_phone;
+                }
+                if (configuracion.business_name) {
+                    document.getElementById('businessName').value = configuracion.business_name;
+                }
+                if (configuracion.mensaje_24h) {
+                    document.getElementById('mensaje24h').value = configuracion.mensaje_24h;
+                }
+                if (configuracion.mensaje_2h) {
+                    document.getElementById('mensaje2h').value = configuracion.mensaje_2h;
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+
+        // Verificar estado de WhatsApp
+        async function verificarEstadoWhatsApp() {
+            try {
+                const response = await fetch('/api/whatsapp/status');
+                const status = await response.json();
+                
+                const statusCard = document.getElementById('whatsappStatus');
+                const statusTitle = document.getElementById('statusTitle');
+                const statusDescription = document.getElementById('statusDescription');
+                
+                if (status.connected) {
+                    statusCard.className = 'status-card';
+                    statusTitle.textContent = '✅ WhatsApp Conectado';
+                    statusDescription.textContent = 'Tu WhatsApp está conectado y funcionando correctamente. Los recordatorios y promociones se enviarán automáticamente.';
+                } else {
+                    statusCard.className = 'status-card disconnected';
+                    statusTitle.textContent = '❌ WhatsApp Desconectado';
+                    statusDescription.textContent = 'Ve a la consola del servidor y escanea el código QR con tu WhatsApp para conectar.';
+                }
+            } catch (error) {
+                console.error('Error verificando WhatsApp:', error);
+            }
+        }
+
+        // Guardar configuración básica
+        async function guardarConfiguracion(e) {
+            e.preventDefault();
+            
+            const adminPhone = document.getElementById('adminPhone').value;
+            const businessName = document.getElementById('businessName').value;
+            
+            try {
+                // Guardar número de admin
+                await fetch('/api/configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clave: 'admin_phone', valor: adminPhone })
+                });
+                
+                // Guardar nombre del negocio
+                await fetch('/api/configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clave: 'business_name', valor: businessName })
+                });
+                
+                mostrarNotificacion('✅ Configuración guardada exitosamente');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error guardando configuración', 'error');
+            }
+        }
+
+        // Guardar mensajes personalizados
+        async function guardarMensajes() {
+            const mensaje24h = document.getElementById('mensaje24h').value;
+            const mensaje2h = document.getElementById('mensaje2h').value;
+            
+            try {
+                if (mensaje24h) {
+                    await fetch('/api/configuracion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clave: 'mensaje_24h', valor: mensaje24h })
+                    });
+                }
+                
+                if (mensaje2h) {
+                    await fetch('/api/configuracion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clave: 'mensaje_2h', valor: mensaje2h })
+                    });
+                }
+                
+                mostrarNotificacion('✅ Mensajes personalizados guardados');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error guardando mensajes', 'error');
+            }
+        }
+
+        // Probar WhatsApp
+        async function probarWhatsApp() {
+            if (!configuracion.admin_phone) {
+                mostrarNotificacion('Primero configura tu número de teléfono', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/test-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        numero: configuracion.admin_phone,
+                        mensaje: '🧪 Mensaje de prueba desde la configuración del sistema de citas. ¡Todo funciona correctamente! ✅'
+                    })
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    mostrarNotificacion('✅ Mensaje de prueba enviado a tu WhatsApp');
+                } else {
+                    mostrarNotificacion(resultado.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error enviando mensaje de prueba', 'error');
+            }
+        }
+
+        // Reiniciar WhatsApp (requiere implementación en servidor)
+        function reiniciarWhatsApp() {
+            if (confirm('¿Estás seguro? Tendrás que escanear el código QR nuevamente.')) {
+                mostrarNotificacion('Para reiniciar WhatsApp, reinicia el servidor desde la terminal', 'error');
+            }
+        }
+
+        // Mostrar notificación
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = mensaje;
+            notification.className = `notification ${tipo}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

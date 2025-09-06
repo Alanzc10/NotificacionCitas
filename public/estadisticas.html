@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas y Contabilidad - Sistema de Citas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            padding: 30px;
+            text-align: center;
+            color: #333;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav-buttons {
+            background: #f8f9ff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e1e8f0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-buttons a, .nav-buttons button {
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .nav-buttons a:hover, .nav-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .period-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .period-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+
+        .stat-card.revenue {
+            background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+            color: white;
+        }
+
+        .stat-card.appointments {
+            background: linear-gradient(135deg, #2196f3 0%, #64b5f6 100%);
+            color: white;
+        }
+
+        .stat-card.average {
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+            color: white;
+        }
+
+        .stat-card.completion {
+            background: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%);
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #f0f0f0;
+        }
+
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            font-size: 1.3em;
+        }
+
+        .services-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .service-info {
+            flex: 1;
+        }
+
+        .service-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .service-stats {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .service-revenue {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #4caf50;
+        }
+
+        .daily-chart {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .day-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .day-date {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .day-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .day-revenue {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .day-appointments {
+            color: #2196f3;
+            font-weight: 600;
+        }
+
+        .summary-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #f0f0f0;
+        }
+
+        .summary-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            text-align: center;
+        }
+
+        .summary-item {
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            border: 2px solid #e1e8f0;
+        }
+
+        .summary-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .period-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .day-stats {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Estadísticas y Contabilidad</h1>
+            <p>Análisis completo de tu negocio de uñas</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/">🏠 Panel Principal</a>
+            <a href="/config">⚙️ Configuración</a>
+            <button onclick="exportarReporte()">📄 Exportar Reporte</button>
+            <button onclick="location.reload()">🔄 Actualizar</button>
+        </div>
+
+        <div class="main-content">
+            <!-- Selector de período -->
+            <div class="period-selector">
+                <button class="period-btn active" onclick="cambiarPeriodo('semana', this)">Esta Semana</button>
+                <button class="period-btn" onclick="cambiarPeriodo('mes', this)">Este Mes</button>
+                <button class="period-btn" onclick="cambiarPeriodo('año', this)">Este Año</button>
+            </div>
+
+            <!-- Estadísticas principales -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="loading">Cargando estadísticas...</div>
+            </div>
+
+            <!-- Gráficos y análisis -->
+            <div class="charts-section" id="chartsSection" style="display: none;">
+                <div class="chart-container">
+                    <h3>🏆 Servicios Más Populares</h3>
+                    <ul class="services-list" id="servicesList">
+                        <!-- Servicios se cargan aquí -->
+                    </ul>
+                </div>
+
+                <div class="chart-container">
+                    <h3>📈 Ingresos por Día</h3>
+                    <div class="daily-chart" id="dailyChart">
+                        <!-- Ingresos diarios se cargan aquí -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen del período -->
+            <div class="summary-section" id="summarySection" style="display: none;">
+                <h3 id="summaryTitle">Resumen de la Semana</h3>
+                <div class="summary-grid" id="summaryGrid">
+                    <!-- Resumen se carga aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPeriod = 'semana';
+        let estadisticasActuales = null;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarEstadisticas('semana');
+        });
+
+        // Cambiar período
+        function cambiarPeriodo(periodo, button) {
+            // Actualizar botones
+            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            currentPeriod = periodo;
+            cargarEstadisticas(periodo);
+        }
+
+        // Cargar estadísticas
+        async function cargarEstadisticas(periodo) {
+            try {
+                // Mostrar loading
+                document.getElementById('statsGrid').innerHTML = '<div class="loading">Cargando estadísticas...</div>';
+                document.getElementById('chartsSection').style.display = 'none';
+                document.getElementById('summarySection').style.display = 'none';
+
+                const response = await fetch(`/api/estadisticas?periodo=${periodo}`);
+                estadisticasActuales = await response.json();
+                
+                renderizarEstadisticas(estadisticasActuales, periodo);
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="no-data">
+                        <h3>Error cargando estadísticas</h3>
+                        <p>Por favor, intenta nuevamente</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Renderizar estadísticas
+        function renderizarEstadisticas(data, periodo) {
+            const { resumen, servicios_populares, ingresos_diarios } = data;
+            
+            // Estadísticas principales
+            const statsHTML = `
+                <div class="stat-card revenue">
+                    <div class="stat-number">$${(resumen.ingresos_total || 0).toFixed(2)}</div>
+                    <div class="stat-label">Ingresos Totales</div>
+                </div>
+                <div class="stat-card appointments">
+                    <div class="stat-number">${resumen.citas_completadas || 0}</div>
+                    <div class="stat-label">Citas Completadas</div>
+                </div>
+                <div class="stat-card average">
+                    <div class="stat-number">$${(resumen.promedio_servicio || 0).toFixed(2)}</div>
+                    <div class="stat-label">Promedio por Servicio</div>
+                </div>
+                <div class="stat-card completion">
+                    <div class="stat-number">${calcularPorcentajeCompletado(resumen)}%</div>
+                    <div class="stat-label">Tasa de Completado</div>
+                </div>
+            `;
+            
+            document.getElementById('statsGrid').innerHTML = statsHTML;
+
+            // Servicios populares
+            if (servicios_populares.length > 0) {
+                const serviciosHTML = servicios_populares.map(servicio => `
+                    <li class="service-item">
+                        <div class="service-info">
+                            <div class="service-name">${servicio.servicio}</div>
+                            <div class="service-stats">${servicio.cantidad} citas realizadas</div>
+                        </div>
+                        <div class="service-revenue">$${(servicio.ingresos || 0).toFixed(2)}</div>
+                    </li>
+                `).join('');
+                
+                document.getElementById('servicesList').innerHTML = serviciosHTML;
+            } else {
+                document.getElementById('servicesList').innerHTML = '<li class="no-data">No hay servicios completados en este período</li>';
+            }
+
+            // Ingresos diarios
+            if (ingresos_diarios.length > 0) {
+                const ingresosHTML = ingresos_diarios.map(dia => `
+                    <div class="day-item">
+                        <div class="day-date">${formatearFecha(dia.fecha)}</div>
+                        <div class="day-stats">
+                            <div class="day-revenue">$${(dia.ingresos_dia || 0).toFixed(2)}</div>
+                            <div class="day-appointments">${dia.citas_dia || 0} citas</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('dailyChart').innerHTML = ingresosHTML;
+            } else {
+                document.getElementById('dailyChart').innerHTML = '<div class="no-data">No hay ingresos registrados en este período</div>';
+            }
+
+            // Resumen
+            const periodoTexto = {
+                'semana': 'Semana',
+                'mes': 'Mes', 
+                'año': 'Año'
+            };
+            
+            document.getElementById('summaryTitle').textContent = `Resumen del ${periodoTexto[periodo]}`;
+            
+            const tasaCancelacion = resumen.total_citas > 0 ? 
+                ((resumen.citas_canceladas / resumen.total_citas) * 100).toFixed(1) : 0;
+            
+            const promedioDiario = ingresos_diarios.length > 0 ?
+                (resumen.ingresos_total / ingresos_diarios.length).toFixed(2) : 0;
+
+            const summaryHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${resumen.total_citas || 0}</div>
+                    <div class="summary-label">Citas Totales</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${resumen.citas_canceladas || 0}</div>
+                    <div class="summary-label">Citas Canceladas</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${tasaCancelacion}%</div>
+                    <div class="summary-label">Tasa Cancelación</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">$${promedioDiario}</div>
+                    <div class="summary-label">Promedio Diario</div>
+                </div>
+            `;
+            
+            document.getElementById('summaryGrid').innerHTML = summaryHTML;
+
+            // Mostrar secciones
+            document.getElementById('chartsSection').style.display = 'grid';
+            document.getElementById('summarySection').style.display = 'block';
+        }
+
+        // Calcular porcentaje de completado
+        function calcularPorcentajeCompletado(resumen) {
+            if (resumen.total_citas === 0) return 0;
+            return Math.round((resumen.citas_completadas / resumen.total_citas) * 100);
+        }
+
+        // Formatear fecha
+        function formatearFecha(fechaStr) {
+            const fecha = new Date(fechaStr + 'T00:00:00');
+            const hoy = new Date();
+            const ayer = new Date(hoy);
+            ayer.setDate(hoy.getDate() - 1);
+            
+            if (fecha.toDateString() === hoy.toDateString()) {
+                return 'Hoy';
+            } else if (fecha.toDateString() === ayer.toDateString()) {
+                return 'Ayer';
+            } else {
+                return fecha.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                });
+            }
+        }
+
+        // Exportar reporte
+        function exportarReporte() {
+            if (!estadisticasActuales) {
+                alert('No hay datos para exportar');
+                return;
+            }
+
+            const periodoTexto = {
+                'semana': 'Semana',
+                'mes': 'Mes',
+                'año': 'Año'
+            };
+
+            let reporte = `REPORTE DE ESTADÍSTICAS - ${periodoTexto[currentPeriod].toUpperCase()}\n`;
+            reporte += `Período: ${estadisticasActuales.fecha_inicio} al ${estadisticasActuales.fecha_fin}\n`;
+            reporte += `Generado: ${new Date().toLocaleString('es-ES')}\n\n`;
+            
+            reporte += `RESUMEN FINANCIERO:\n`;
+            reporte += `- Ingresos Totales: $${(estadisticasActuales.resumen.ingresos_total || 0).toFixed(2)}\n`;
+            reporte += `- Citas Completadas: ${estadisticasActuales.resumen.citas_completadas || 0}\n`;
+            reporte += `- Promedio por Servicio: $${(estadisticasActuales.resumen.promedio_servicio || 0).toFixed(2)}\n`;
+            reporte += `- Tasa de Completado: ${calcularPorcentajeCompletado(estadisticasActuales.resumen)}%\n\n`;
+            
+            if (estadisticasActuales.servicios_populares.length > 0) {
+                reporte += `SERVICIOS MÁS POPULARES:\n`;
+                estadisticasActuales.servicios_populares.forEach((servicio, index) => {
+                    reporte += `${index + 1}. ${servicio.servicio}: ${servicio.cantidad} citas - $${(servicio.ingresos || 0).toFixed(2)}\n`;
+                });
+                reporte += '\n';
+            }
+            
+            if (estadisticasActuales.ingresos_diarios.length > 0) {
+                reporte += `INGRESOS DIARIOS:\n`;
+                estadisticasActuales.ingresos_diarios.forEach(dia => {
+                    reporte += `${dia.fecha}: $${(dia.ingresos_dia || 0).toFixed(2)} (${dia.citas_dia || 0} citas)\n`;
+                });
+            }
+
+            // Descargar como archivo de texto
+            const blob = new Blob([reporte], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reporte_${currentPeriod}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
