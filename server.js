@@ -38,6 +38,7 @@ db.serialize(() => {
         cliente_telefono TEXT NOT NULL,
         fecha_cita DATETIME NOT NULL,
         servicio TEXT NOT NULL,
+        servicios_adicionales TEXT,
         precio_servicio DECIMAL(10,2) DEFAULT 0,
         notas TEXT,
         estado TEXT DEFAULT 'programada',
@@ -63,25 +64,28 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Insertar precios por defecto para los servicios
-    const serviciosDefault = [
-        ['Manicure Tradicional', 15.00],
-        ['Esmaltado Semipermanente', 25.00],
-        ['Pedicure Tradicional', 20.00],
-        ['Pedicure Semipermanente', 30.00],
-        ['Acripie', 35.00],
-        ['Uñas Acrílicas', 40.00],
-        ['Uñas Esculturales', 45.00],
-        ['Baños de Acrílico', 35.00],
-        ['Retoque de Uñas', 20.00],
-        ['Uñas Soft Gel', 35.00],
-        ['Retiro de Sistemas', 15.00],
-        ['Limpieza de Uñas', 12.00]
-    ];
+// Insertar o actualizar precios para los servicios
+const serviciosDefault = [
+    ['Manicure Tradicional', 4.00],
+    ['Esmaltado Semipermanente', 8.00],
+    ['Pedicure Tradicional', 4.00],
+    ['Pedicure Semipermanente', 8.00],
+    ['Acripie', 10.00],
+    ['Uñas Acrílicas', 15.00],
+    ['Uñas Esculturales', 20.00],
+    ['Baños de Acrílico', 10.00],
+    ['Retoque de Uñas', .00],
+    ['Uñas Soft Gel', 10.00],
+    ['Retiro de Sistemas', 3.00],
+    ['Limpieza de Uñas', 2.00],
+    ['Builder Gel', 10.00]
+];
 
-    serviciosDefault.forEach(([servicio, precio]) => {
-        db.run(`INSERT OR IGNORE INTO precios_servicios (servicio, precio) VALUES (?, ?)`, [servicio, precio]);
-    });
+serviciosDefault.forEach(([servicio, precio]) => {
+    // Cambiado de INSERT OR IGNORE a INSERT OR REPLACE para actualizar precios
+    db.run(`INSERT OR REPLACE INTO precios_servicios (servicio, precio, activo) 
+            VALUES (?, ?, 1)`, [servicio, precio]);
+});
 
     db.run(`INSERT OR IGNORE INTO configuracion (clave, valor) 
             VALUES ('admin_phone', '593978863845')`);
@@ -96,6 +100,12 @@ db.serialize(() => {
     db.run(`ALTER TABLE citas ADD COLUMN completed_at DATETIME`, (err) => {
         if (err && !err.message.includes('duplicate column name')) {
             console.error('Error agregando columna completed_at:', err.message);
+        }
+    });
+
+    db.run(`ALTER TABLE citas ADD COLUMN servicios_adicionales TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error agregando columna servicios_adicionales:', err.message);
         }
     });
 });
@@ -131,7 +141,7 @@ app.get('/api/citas', (req, res) => {
 });
 
 app.post('/api/citas', (req, res) => {
-    const { cliente_nombre, cliente_telefono, fecha_cita, servicio, precio_servicio, notas } = req.body;
+    const { cliente_nombre, cliente_telefono, fecha_cita, servicio, servicios_adicionales, precio_servicio, notas } = req.body;
     
     if (!cliente_nombre || !cliente_telefono || !fecha_cita || !servicio) {
         return res.status(400).json({ error: 'Todos los campos son requeridos' });
@@ -139,15 +149,62 @@ app.post('/api/citas', (req, res) => {
     
     const telefonoLimpio = cliente_telefono.replace(/[^\d]/g, '');
     
-    const stmt = db.prepare(`INSERT INTO citas 
-        (cliente_nombre, cliente_telefono, fecha_cita, servicio, precio_servicio, notas) 
-        VALUES (?, ?, ?, ?, ?, ?)`);
+    // Convertir array de servicios adicionales a JSON string
+    const serviciosAdicionalesJSON = servicios_adicionales && servicios_adicionales.length > 0 
+        ? JSON.stringify(servicios_adicionales) 
+        : null;
     
-    stmt.run([cliente_nombre, telefonoLimpio, fecha_cita, servicio, precio_servicio || 0, notas], function(err) {
+    const stmt = db.prepare(`INSERT INTO citas 
+        (cliente_nombre, cliente_telefono, fecha_cita, servicio, servicios_adicionales, precio_servicio, notas) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    
+    stmt.run([cliente_nombre, telefonoLimpio, fecha_cita, servicio, serviciosAdicionalesJSON, precio_servicio || 0, notas], async function(err) {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
+        
+        // ENVIAR MENSAJE DE CONFIRMACIÓN AL CREAR LA CITA
+        if (isWhatsAppReady) {
+            const fechaFormateada = moment(fecha_cita).format('DD/MM/YYYY HH:mm');
+            
+            // Construir lista de servicios
+            let listaServicios = `💅🏻 *Servicio:* ${servicio}`;
+            if (servicios_adicionales && servicios_adicionales.length > 0) {
+                listaServicios += '\n➕ *Servicios adicionales:*';
+                servicios_adicionales.forEach(s => {
+                    listaServicios += `\n   • ${s.servicio}`;
+                });
+            }
+            
+            const mensajeConfirmacion = `💅✨ *CITA AGENDADA EXITOSAMENTE* ✨💅
+
+¡Hola ${cliente_nombre}! 👋😊
+
+✅ Tu cita ha sido confirmada con éxito
+
+📅 *Fecha y Hora:* ${fechaFormateada}
+${listaServicios}
+💰 *Precio Total:* $${parseFloat(precio_servicio || 0).toFixed(2)}
+${notas ? `📝 *Notas:* ${notas}` : ''}
+
+*Recuerda*: Que son 15m de tolerancia, luego de eso la cita se cancela automáticamente   
+⚠️ *Importante:* Si no puedes asistir, avísanos con tiempo para reprogramar tu cita 🙏
+
+¡Te esperamos para consentir tus uñas! 💖✨
+
+_E.j_Nailss_ 🌸`;
+
+            // Enviar mensaje de confirmación
+            enviarMensajeWhatsApp(telefonoLimpio, mensajeConfirmacion).then(enviado => {
+                if (enviado) {
+                    console.log(`✅ Confirmación enviada a ${cliente_nombre}`);
+                } else {
+                    console.log(`❌ Error enviando confirmación a ${cliente_nombre}`);
+                }
+            });
+        }
+        
         res.json({ 
             id: this.lastID, 
             message: 'Cita creada exitosamente'
@@ -160,19 +217,33 @@ app.put('/api/citas/:id', (req, res) => {
     const { estado, precio_servicio } = req.body;
     const citaId = req.params.id;
     
-    // Si se está completando la cita, agregar fecha de completado
-    let query = 'UPDATE citas SET estado = ?';
-    let params = [estado];
+    let query = 'UPDATE citas SET';
+    let params = [];
+    let updates = [];
     
-    if (estado === 'completada') {
-        query += ', completed_at = CURRENT_TIMESTAMP';
-        if (precio_servicio !== undefined) {
-            query += ', precio_servicio = ?';
-            params.push(precio_servicio);
+    // Actualizar estado si se proporciona
+    if (estado !== undefined) {
+        updates.push('estado = ?');
+        params.push(estado);
+        
+        // Si se completa la cita, agregar fecha de completado
+        if (estado === 'completada') {
+            updates.push('completed_at = CURRENT_TIMESTAMP');
         }
     }
     
-    query += ' WHERE id = ?';
+    // Actualizar precio si se proporciona (independiente del estado)
+    if (precio_servicio !== undefined) {
+        updates.push('precio_servicio = ?');
+        params.push(precio_servicio);
+    }
+    
+    // Si no hay nada que actualizar, retornar error
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'No hay datos para actualizar' });
+    }
+    
+    query += ' ' + updates.join(', ') + ' WHERE id = ?';
     params.push(citaId);
     
     db.run(query, params, function(err) {
@@ -224,234 +295,98 @@ app.get('/api/estadisticas', (req, res) => {
             fechaFin = hoy;
     }
     
-    const fechaInicioStr = fechaInicio.toISOString().split('T')[0];
-    const fechaFinStr = fechaFin.toISOString().split('T')[0];
+    const queries = {
+        totalCitas: `SELECT COUNT(*) as total FROM citas WHERE 
+                    fecha_cita BETWEEN ? AND ?`,
+        citasCompletadas: `SELECT COUNT(*) as total FROM citas WHERE 
+                          estado = 'completada' AND 
+                          completed_at BETWEEN ? AND ?`,
+        citasCanceladas: `SELECT COUNT(*) as total FROM citas WHERE 
+                         estado = 'cancelada' AND 
+                         fecha_cita BETWEEN ? AND ?`,
+        ingresoTotal: `SELECT SUM(precio_servicio) as total FROM citas WHERE 
+                      estado = 'completada' AND 
+                      completed_at BETWEEN ? AND ?`,
+        serviciosMasPopulares: `SELECT servicio, COUNT(*) as cantidad FROM citas WHERE 
+                               fecha_cita BETWEEN ? AND ? 
+                               GROUP BY servicio 
+                               ORDER BY cantidad DESC 
+                               LIMIT 5`
+    };
     
-    // Consultar estadísticas
-    db.all(`
-        SELECT 
-            COUNT(*) as total_citas,
-            SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END) as citas_completadas,
-            SUM(CASE WHEN estado = 'cancelada' THEN 1 ELSE 0 END) as citas_canceladas,
-            SUM(CASE WHEN estado = 'completada' THEN precio_servicio ELSE 0 END) as ingresos_total,
-            AVG(CASE WHEN estado = 'completada' THEN precio_servicio ELSE NULL END) as promedio_servicio
-        FROM citas 
-        WHERE date(completed_at) BETWEEN ? AND ? OR date(fecha_cita) BETWEEN ? AND ?
-    `, [fechaInicioStr, fechaFinStr, fechaInicioStr, fechaFinStr], (err, estadisticas) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+    const params = [fechaInicio.toISOString(), fechaFin.toISOString()];
+    
+    const resultados = {};
+    
+    db.get(queries.totalCitas, params, (err, row) => {
+        resultados.totalCitas = row ? row.total : 0;
         
-        // Consultar servicios más populares
-        db.all(`
-            SELECT servicio, COUNT(*) as cantidad, SUM(precio_servicio) as ingresos
-            FROM citas 
-            WHERE estado = 'completada' AND date(completed_at) BETWEEN ? AND ?
-            GROUP BY servicio 
-            ORDER BY cantidad DESC
-            LIMIT 5
-        `, [fechaInicioStr, fechaFinStr], (err, serviciosPopulares) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
+        db.get(queries.citasCompletadas, params, (err, row) => {
+            resultados.citasCompletadas = row ? row.total : 0;
             
-            // Consultar ingresos por día
-            db.all(`
-                SELECT date(completed_at) as fecha, SUM(precio_servicio) as ingresos_dia, COUNT(*) as citas_dia
-                FROM citas 
-                WHERE estado = 'completada' AND date(completed_at) BETWEEN ? AND ?
-                GROUP BY date(completed_at)
-                ORDER BY fecha
-            `, [fechaInicioStr, fechaFinStr], (err, ingresosDiarios) => {
-                if (err) {
-                    res.status(500).json({ error: err.message });
-                    return;
-                }
+            db.get(queries.citasCanceladas, params, (err, row) => {
+                resultados.citasCanceladas = row ? row.total : 0;
                 
-                res.json({
-                    periodo: periodo || 'personalizado',
-                    fecha_inicio: fechaInicioStr,
-                    fecha_fin: fechaFinStr,
-                    resumen: estadisticas[0],
-                    servicios_populares: serviciosPopulares,
-                    ingresos_diarios: ingresosDiarios
-                });
-            });
-        });
-    });
-});
-
-// Nueva ruta para enviar promociones masivas
-app.post('/api/promocion-masiva', async (req, res) => {
-    const { mensaje } = req.body;
-    
-    if (!isWhatsAppReady) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'WhatsApp no está conectado' 
-        });
-    }
-    
-    if (!mensaje || mensaje.trim().length === 0) {
-        return res.status(400).json({
-            success: false,
-            message: 'El mensaje no puede estar vacío'
-        });
-    }
-    
-    try {
-        // Obtener todos los números únicos de clientes
-        db.all(`SELECT DISTINCT cliente_telefono, cliente_nombre 
-                FROM citas 
-                WHERE cliente_telefono IS NOT NULL 
-                ORDER BY cliente_nombre`, 
-            async (err, clientes) => {
-                if (err) {
-                    return res.status(500).json({ 
-                        success: false, 
-                        error: err.message 
+                db.get(queries.ingresoTotal, params, (err, row) => {
+                    resultados.ingresoTotal = row && row.total ? row.total : 0;
+                    
+                    db.all(queries.serviciosMasPopulares, params, (err, rows) => {
+                        resultados.serviciosMasPopulares = rows || [];
+                        res.json(resultados);
                     });
-                }
-                
-                console.log(`Enviando promoción a ${clientes.length} clientes...`);
-                
-                let enviados = 0;
-                let errores = 0;
-                
-                for (const cliente of clientes) {
-                    try {
-                        const mensajePersonalizado = `Hola ${cliente.cliente_nombre}! 👋\n\n${mensaje}\n\n_Nail Studio_ 🌸`;
-                        const enviado = await enviarMensajeWhatsApp(cliente.cliente_telefono, mensajePersonalizado);
-                        
-                        if (enviado) {
-                            enviados++;
-                            console.log(`✅ Promoción enviada a ${cliente.cliente_nombre}`);
-                        } else {
-                            errores++;
-                            console.log(`❌ Error enviando a ${cliente.cliente_nombre}`);
-                        }
-                        
-                        // Esperar 3 segundos entre cada envío para no saturar WhatsApp
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                        
-                    } catch (error) {
-                        errores++;
-                        console.error(`Error enviando a ${cliente.cliente_nombre}:`, error);
-                    }
-                }
-                
-                res.json({
-                    success: true,
-                    enviados: enviados,
-                    errores: errores,
-                    total: clientes.length,
-                    message: `Promoción enviada a ${enviados} de ${clientes.length} clientes`
                 });
             });
-    } catch (error) {
-        console.error('Error enviando promoción masiva:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor'
         });
-    }
-});
-
-app.post('/api/test-message', async (req, res) => {
-    const { numero, mensaje } = req.body;
-    
-    if (!isWhatsAppReady) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'WhatsApp no está conectado' 
-        });
-    }
-    
-    const enviado = await enviarMensajeWhatsApp(numero, mensaje);
-    res.json({ 
-        success: enviado, 
-        message: enviado ? 'Mensaje enviado exitosamente' : 'Error enviando mensaje' 
     });
 });
 
-app.get('/api/configuracion', (req, res) => {
-    db.all('SELECT * FROM configuracion', (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        const config = {};
-        rows.forEach(row => {
-            config[row.clave] = row.valor;
-        });
-        res.json(config);
-    });
-});
-
-app.post('/api/configuracion', (req, res) => {
-    const { clave, valor } = req.body;
-    
-    db.run(`INSERT OR REPLACE INTO configuracion (clave, valor, updated_at) 
-            VALUES (?, ?, CURRENT_TIMESTAMP)`, [clave, valor], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ message: 'Configuración guardada exitosamente' });
-    });
-});
-
-// Rutas de páginas
+// Servir archivos estáticos
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/config', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'config.html'));
 });
 
 app.get('/estadisticas', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'estadisticas.html'));
 });
 
-// Iniciar servidor ANTES de WhatsApp
+// Iniciar servidor
 app.listen(PORT, () => {
-    console.log('\n========================================');
-    console.log(`Servidor iniciado en http://localhost:${PORT}`);
-    console.log('Panel administrativo disponible');
-    console.log('Estadísticas disponibles en /estadisticas');
-    console.log('========================================\n');
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`📱 Panel administrativo: http://localhost:${PORT}`);
+    console.log(`📊 Estadísticas: http://localhost:${PORT}/estadisticas`);
+    console.log(`${'='.repeat(50)}\n`);
     
-    // Inicializar WhatsApp después del servidor
+    // Inicializar WhatsApp después de que el servidor esté corriendo
     inicializarWhatsApp();
 });
 
-// FUNCIONES DE WHATSAPP
-
 function limpiarCacheWhatsApp() {
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    const cachePath = path.join(__dirname, '.wwebjs_cache');
+    
     try {
-        if (fs.existsSync('./whatsapp-session')) {
-            fs.rmSync('./whatsapp-session', { recursive: true, force: true });
+        if (fs.existsSync(authPath)) {
+            fs.rmSync(authPath, { recursive: true, force: true });
+            console.log('Cache de autenticación limpiado');
         }
-        if (fs.existsSync('./.wwebjs_auth')) {
-            fs.rmSync('./.wwebjs_auth', { recursive: true, force: true });
+        if (fs.existsSync(cachePath)) {
+            fs.rmSync(cachePath, { recursive: true, force: true });
+            console.log('Cache de WhatsApp limpiado');
         }
     } catch (error) {
-        console.log('Cache ya limpio o no existe');
+        console.error('Error limpiando cache:', error.message);
     }
 }
 
 async function inicializarWhatsApp() {
     try {
-        console.log('Cargando WhatsApp Web...');
-        
         const { Client, LocalAuth } = require('whatsapp-web.js');
         
         const client = new Client({
             authStrategy: new LocalAuth({
-                dataPath: './whatsapp-session'
+                clientId: "citas-client",
+                dataPath: './.wwebjs_auth'
             }),
             puppeteer: {
                 headless: true,
@@ -469,14 +404,13 @@ async function inicializarWhatsApp() {
 
         client.on('qr', (qr) => {
             console.log('\n=================================');
-            console.log('ESCANEA ESTE CÓDIGO QR CON TU WHATSAPP:');
-            console.log('=================================');
+            console.log('📱 ESCANEA ESTE CÓDIGO QR CON WHATSAPP:');
+            console.log('=================================\n');
             qrcode.generate(qr, { small: true });
-            console.log('\nPASOS PARA CONECTAR:');
-            console.log('1. Abre WhatsApp en tu teléfono');
-            console.log('2. Ve a Configuración > Dispositivos vinculados');
-            console.log('3. Toca "Vincular un dispositivo"');
-            console.log('4. Escanea el código QR de arriba');
+            console.log('\n=================================');
+            console.log('Abre WhatsApp en tu teléfono');
+            console.log('Ve a: Dispositivos Vinculados');
+            console.log('Escanea el código QR de arriba');
             console.log('=================================\n');
         });
 
@@ -547,8 +481,11 @@ async function enviarMensajeWhatsApp(numero, mensaje) {
 }
 
 
-
-cron.schedule('*/8 * * * *', async () => {
+// ========================================
+// RECORDATORIO DE 24 HORAS - DESACTIVADO
+// ========================================
+/*
+cron.schedule('/8 * * * *', async () => {
     if (!isWhatsAppReady) {
         return;
     }
@@ -570,6 +507,22 @@ cron.schedule('*/8 * * * *', async () => {
             
             for (const cita of citas) {
                 const fechaFormateada = moment(cita.fecha_cita).format('DD/MM/YYYY HH:mm');
+                
+                let listaServicios = `💅🏻 *Servicio:* ${cita.servicio}`;
+                if (cita.servicios_adicionales) {
+                    try {
+                        const serviciosAdicionales = JSON.parse(cita.servicios_adicionales);
+                        if (serviciosAdicionales.length > 0) {
+                            listaServicios += '\n➕ *Servicios adicionales:*';
+                            serviciosAdicionales.forEach(s => {
+                                listaServicios += `\n   • ${s.servicio}`;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parseando servicios adicionales:', e);
+                    }
+                }
+                
                 const mensaje = `💅✨ *RECORDATORIO DE CITA* ✨💅
 
 ¡Hola ${cita.cliente_nombre}! 👋😊
@@ -577,7 +530,7 @@ cron.schedule('*/8 * * * *', async () => {
 🗓️ Te recordamos que *mañana* tienes tu cita:
 
 📅 *Fecha:* ${fechaFormateada}
-💅🏻 *Servicio:* ${cita.servicio}
+${listaServicios}
 ${cita.notas ? `📝 *Notas:* ${cita.notas}` : ''}
 
 *Recuerda*: Que son 15m de tolerancia, luego de eso la cita se cancela automaticamente   
@@ -598,9 +551,12 @@ _E.j_Nailss_ 🌸`;
             }
         });
 });
+*/
 
 
-// RECORDATORIO DE 2 HORAS CORREGIDO CON ZONA HORARIA
+// ========================================
+// RECORDATORIO DE 2 HORAS - ACTIVO
+// ========================================
 cron.schedule('*/5 * * * *', async () => {
     if (!isWhatsAppReady) {
         return;
@@ -653,7 +609,22 @@ cron.schedule('*/5 * * * *', async () => {
             for (const cita of citas) {
                 const fechaFormateada = moment(cita.fecha_cita).format('DD/MM/YYYY HH:mm');
                 
-                // TU MENSAJE ORIGINAL - NO LO CAMBIO
+                // Construir lista de servicios
+                let listaServicios = `💅 *Servicio:* ${cita.servicio}`;
+                if (cita.servicios_adicionales) {
+                    try {
+                        const serviciosAdicionales = JSON.parse(cita.servicios_adicionales);
+                        if (serviciosAdicionales.length > 0) {
+                            listaServicios += '\n➕ *Servicios adicionales:*';
+                            serviciosAdicionales.forEach(s => {
+                                listaServicios += `\n   • ${s.servicio}`;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parseando servicios adicionales:', e);
+                    }
+                }
+                
                 const mensaje = `⏰ *¡TU CITA ES HOY!* ⏰
 
 Hola ${cita.cliente_nombre}! 💕
@@ -661,7 +632,7 @@ Hola ${cita.cliente_nombre}! 💕
 🚨 *Recordatorio urgente:* Tu cita es en aproximadamente 2 horas
 
 ⏰ *Hora:* ${fechaFormateada}
-💅 *Servicio:* ${cita.servicio}
+${listaServicios}
 ${cita.notas ? `📝 *Notas:* ${cita.notas}` : ''}
 
 📍 No olvides llegar puntual
@@ -669,7 +640,7 @@ ${cita.notas ? `📝 *Notas:* ${cita.notas}` : ''}
 
 ¡Nos vemos muy pronto! 😊✨
 
-_Nail Studio_ 🌸`;
+_E.j_Nailss_ 🌸`;
 
                 const enviado = await enviarMensajeWhatsApp(cita.cliente_telefono, mensaje);
                 
@@ -684,6 +655,7 @@ _Nail Studio_ 🌸`;
             }
         });
 });
+
 // Cerrar correctamente
 process.on('SIGINT', () => {
     console.log('\nCerrando servidor...');
